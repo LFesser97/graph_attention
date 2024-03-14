@@ -53,6 +53,20 @@ class GAT(torch.nn.Module):
         x = global_mean_pool(x, data.batch)
         x = F.elu(self.lin(x))
         return F.log_softmax(x, dim=1)
+    
+    def attention(self, data):
+        """
+        Return the attention scores of the GAT model using
+        return_attention_scores=True.
+        """
+        x, edge_index = data.x, data.edge_index
+        attention = []
+        for i, conv in enumerate(self.convs):
+            x, att = conv(x, edge_index, return_attention_scores=True)
+            attention.append(att)
+            x = F.elu(x)
+        return attention
+    
 
 class Experiment:
     def __init__(self, dataset, num_layers, num_heads=1):
@@ -100,7 +114,7 @@ class Experiment:
         optimizer.zero_grad()
         self.epochs += epochs
         print(f"Model trained for {self.epochs} total epochs.")
-        return model
+        self.model = model
     
     def create_attention_digraph(self, input_graph, layer):
         """
