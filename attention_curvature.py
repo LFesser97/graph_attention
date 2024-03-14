@@ -62,7 +62,7 @@ class GAT(torch.nn.Module):
         x, edge_index = data.x, data.edge_index
         attention = []
         for i, conv in enumerate(self.convs):
-            x, att = conv(x, edge_index, return_attention_scores=True)
+            x, att = conv(x, edge_index, return_attention_weights=True)
             attention.append(att)
             x = F.elu(x)
         return attention
