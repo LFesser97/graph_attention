@@ -124,7 +124,7 @@ class Experiment:
         H = to_networkx(input_graph)
         G = nx.DiGraph()
         num_edges = input_graph.num_edges + input_graph.num_nodes
-        G.add_nodes_from(range(num_edges))
+        G.add_nodes_from(range(input_graph.num_nodes))
         # add edges from source to target with attention score as weight
         for i, edge in enumerate(H.edges):
             u, v = edge
