@@ -122,14 +122,13 @@ class Experiment:
         """
         attention_scores = self.model.attention(input_graph)[layer-1]
         G = nx.DiGraph()
-        num_edges = 2 * len(attention_scores[1])
-        print(num_edges)
+        num_edges = 2 * input_graph.num_edges + input_graph.num_nodes
         G.add_nodes_from(range(num_edges))
-        for i in range(num_edges):
-            G.add_edge(attention_scores[0, i].item(), attention_scores[1, i].item(), weight=i)
+        # add edges from source to target with attention score as weight
+
         # remove self-loops
-        G.remove_edges_from(nx.selfloop_edges(G))
-        return G
+        # G.remove_edges_from(nx.selfloop_edges(G))
+        return attention_scores
 
     
 def compute_edge_curvatures(graph):
