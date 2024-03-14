@@ -140,18 +140,11 @@ class Experiment:
 def compute_edge_curvatures(graph):
     """
     Compute the Ollivier-Ricci curvature of a given directed and weighted graph.
-
-    Parameters
-    ----------
-    graph : nx.DiGraph
-        The directed graph.
-
-    Returns
-    -------
-    curvatures : dict
-        A dictionary of edge curvatures.
     """
     curvatures = {}
-    for u, v in graph.edges:
-        curvatures[(u, v)] = OllivierRicci(graph, u, v).compute_ricci_curvature()
+    orc = OllivierRicci(graph, alpha=0, verbose="ERROR")
+    orc.compute_ricci_curvature()
+    for edge in graph.edges:
+        if edge[0] != edge[1]:
+            curvatures[edge] = orc.G.edges[edge]["ricciCurvature"]
     return curvatures
