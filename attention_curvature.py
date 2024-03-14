@@ -67,27 +67,35 @@ class Experiment:
         """
         Create a GAT model for the given dataset with the given number of layers and heads.
         The dataset is one of Mutag, Enzymes, or Proteins, and has type list.
+
+        Each element of the list is of the form Data(edge_index=[2, 38], x=[17, 7], edge_attr=[38, 4], y=[1])
         """
-        data = self.dataset[0]
-        num_features = data.num_features
-        num_classes = data.num_classes
+        dataset = self.dataset
+        num_features = dataset[0].num_features
+        # we only run binary classification experiments
+        num_classes = 2
         model = GAT(num_features, num_classes, self.num_layers, self.num_heads).to(self.device)
         return model
     
     def train(self, epochs=100):
         """
-        Train the GAT model on the given dataset for the given number of epochs.
+        Train the GAT model on the given binary classification dataset
+        for the given number of epochs.
         """
-        data = self.dataset[0].to(self.device)
         model = self.model
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
+        device = self.device
+        dataset = self.dataset
         model.train()
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
+        criterion = torch.nn.CrossEntropyLoss()
         for epoch in range(epochs):
-            optimizer.zero_grad()
-            out = model(data)
-            loss = F.nll_loss(out[data.train_mask], data.y[data.train_mask])
-            loss.backward()
-            optimizer.step()
+            for data in dataset:
+                data = data.to(device)
+                optimizer.zero_grad()
+                out = model(data)
+                loss = criterion(out[data.train_mask], data.y[data.train_mask])
+                loss.backward()
+                optimizer.step()
         self.epochs += epochs
         print(f"Model trained for {self.epochs} total epochs.")
         return model
