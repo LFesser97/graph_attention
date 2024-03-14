@@ -19,31 +19,12 @@ from torch.nn import ModuleList
 
 import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid, WebKB, HeterophilousGraphDataset
-from torch_geometric.nn import GATConv
+from torch_geometric.nn import GATConv, global_mean_pool
 from torch_geometric.utils import to_networkx, from_networkx, to_dense_adj
 
 from GraphRicciCurvature.OllivierRicci import OllivierRicci
 
 import networkx as nx
-
-
-class RGATConv(torch.nn.Module):
-    def __init__(self, in_features, out_features, num_relations):
-        super(RGATConv, self).__init__()
-        self.in_features = in_features
-        self.out_features = out_features
-        self.num_relations = num_relations
-        self.self_loop_conv = torch.nn.Linear(in_features, out_features)
-        convs = []
-        for i in range(self.num_relations):
-            convs.append(GATConv(in_features, out_features))
-        self.convs = ModuleList(convs)
-    def forward(self, x, edge_index, edge_type):
-        x_new = self.self_loop_conv(x)
-        for i, conv in enumerate(self.convs):
-            rel_edge_index = edge_index[:, edge_type==i]
-            x_new += conv(x, rel_edge_index)
-        return x_new
 
 
 class GAT(torch.nn.Module):
@@ -60,14 +41,18 @@ class GAT(torch.nn.Module):
         for i in range(num_layers - 1):
             self.convs.append(GATConv(num_features * num_heads, num_features, heads=num_heads))
         self.lin = torch.nn.Linear(num_features * num_heads, num_classes)
-    
+        # use max pool to aggregate node embeddings
+        self.pool = global_mean_pool
+
     def forward(self, data):
-        x, edge_index = data.x, data.edge_index
+        x, edge_index, edge_type = data.x, data.edge_index, data.edge_type
         for i in range(self.num_layers):
             x = self.convs[i](x, edge_index)
             x = F.elu(x)
+        x = self.pool(x, data.batch)
         x = self.lin(x)
         return F.log_softmax(x, dim=1)
+    
     
     def attention(self, data):
         x, edge_index = data.x, data.edge_index
