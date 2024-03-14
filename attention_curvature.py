@@ -120,9 +120,10 @@ class Experiment:
         """
         Create a directed graph from the attention scores of the given layer.
         """
-        attention_scores = self.model.attention(input_graph)[layer]
+        attention_scores = self.model.attention(input_graph)[layer-1]
         G = nx.DiGraph()
-        num_edges = attention_scores.shape[1]
+        num_edges = 2 * len(attention_scores[1])
+        print(num_edges)
         G.add_nodes_from(range(num_edges))
         for i in range(num_edges):
             G.add_edge(attention_scores[0, i].item(), attention_scores[1, i].item(), weight=i)
