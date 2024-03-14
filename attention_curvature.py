@@ -31,39 +31,28 @@ class GAT(torch.nn.Module):
     def __init__(self, num_features, num_classes, num_layers, num_heads):
         """
         Create a GAT model with the given number of layers and heads
-        by analogy to the RGAT model above.
+        for the given number of features and classes.
         """
         super(GAT, self).__init__()
-        self.num_layers = num_layers
-        self.num_heads = num_heads
         self.convs = ModuleList()
-        self.convs.append(GATConv(num_features, num_features, heads=num_heads))
-        for i in range(num_layers - 1):
-            self.convs.append(GATConv(num_features * num_heads, num_features, heads=num_heads))
-        self.lin = torch.nn.Linear(num_features * num_heads, num_classes)
-        # use max pool to aggregate node embeddings
-        self.pool = global_mean_pool
+        self.convs.append(GATConv(num_features, 8, heads=num_heads, dropout=0.6))
+        for _ in range(num_layers - 1):
+            self.convs.append(GATConv(8 * num_heads, 8, heads=num_heads, dropout=0.6))
+        self.lin = torch.nn.Linear(8 * num_heads, num_classes)
+        self.attention = None
 
     def forward(self, data):
-        x, edge_index, edge_type = data.x, data.edge_index, data.edge_type
-        for i in range(self.num_layers):
-            x = self.convs[i](x, edge_index)
-            x = F.elu(x)
-        x = self.pool(x, data.batch)
-        x = self.lin(x)
-        return F.log_softmax(x, dim=1)
-    
-    
-    def attention(self, data):
+        """
+        Forward pass of the GAT model.
+        """
         x, edge_index = data.x, data.edge_index
-        attention_scores = []
-        for i in range(self.num_layers - 1):
-            x, att = self.convs[i](x, edge_index, return_attention=True)
-            attention_scores.append(att)
-        x, att = self.convs[-1](x, edge_index, return_attention=True)
-        attention_scores.append(att)
-        return attention_scores
-
+        self.attention = []
+        for i, conv in enumerate(self.convs):
+            x = F.elu(conv(x, edge_index))
+            self.attention.append(conv.att)
+        x = global_mean_pool(x, data.batch)
+        x = F.elu(self.lin(x))
+        return F.log_softmax(x, dim=1)
 
 class Experiment:
     def __init__(self, dataset, num_layers, num_heads=1):
