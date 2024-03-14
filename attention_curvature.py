@@ -68,11 +68,16 @@ class GAT(torch.nn.Module):
             x = F.elu(x)
         x = self.lin(x)
         return F.log_softmax(x, dim=1)
-
-
-
-
-
+    
+    def attention(self, data):
+        x, edge_index = data.x, data.edge_index
+        attention_scores = []
+        for i in range(self.num_layers - 1):
+            x, att = self.convs[i](x, edge_index, return_attention=True)
+            attention_scores.append(att)
+        x, att = self.convs[-1](x, edge_index, return_attention=True)
+        attention_scores.append(att)
+        return attention_scores
 
 
 class Experiment:
@@ -93,7 +98,7 @@ class Experiment:
         """
         dataset = self.dataset
         num_features = dataset[0].num_features
-        # we only run binary classification experiments
+        # we only run binary classification experiments for now
         num_classes = 2
         model = GAT(num_features, num_classes, self.num_layers, self.num_heads).to(self.device)
         return model
@@ -113,10 +118,12 @@ class Experiment:
             for data in dataset:
                 data = data.to(device)
                 optimizer.zero_grad()
+                y = data.y.to(device)
                 out = model(data)
-                loss = criterion(out[data.train_mask], data.y[data.train_mask])
+                loss = criterion(out, y)
                 loss.backward()
                 optimizer.step()
+        optimizer.zero_grad()
         self.epochs += epochs
         print(f"Model trained for {self.epochs} total epochs.")
         return model
@@ -154,14 +161,3 @@ def compute_edge_curvatures(graph):
     for u, v in graph.edges:
         curvatures[(u, v)] = OllivierRicci(graph, u, v).compute_ricci_curvature()
     return curvatures
-
-
-def attention(self, data):
-    x, edge_index = data.x, data.edge_index
-    attention_scores = []
-    for i in range(self.num_layers - 1):
-        x, att = self.convs[i](x, edge_index, return_attention=True)
-        attention_scores.append(att)
-    x, att = self.convs[-1](x, edge_index, return_attention=True)
-    attention_scores.append(att)
-    return attention_scores
