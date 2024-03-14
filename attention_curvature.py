@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 
 import torch
 import torch.nn.functional as F
+from torch.nn import ModuleList
 
 import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid, WebKB, HeterophilousGraphDataset
@@ -26,32 +27,52 @@ from GraphRicciCurvature.OllivierRicci import OllivierRicci
 import networkx as nx
 
 
+class RGATConv(torch.nn.Module):
+    def __init__(self, in_features, out_features, num_relations):
+        super(RGATConv, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.num_relations = num_relations
+        self.self_loop_conv = torch.nn.Linear(in_features, out_features)
+        convs = []
+        for i in range(self.num_relations):
+            convs.append(GATConv(in_features, out_features))
+        self.convs = ModuleList(convs)
+    def forward(self, x, edge_index, edge_type):
+        x_new = self.self_loop_conv(x)
+        for i, conv in enumerate(self.convs):
+            rel_edge_index = edge_index[:, edge_type==i]
+            x_new += conv(x, rel_edge_index)
+        return x_new
+
+
 class GAT(torch.nn.Module):
     def __init__(self, num_features, num_classes, num_layers, num_heads):
+        """
+        Create a GAT model with the given number of layers and heads
+        by analogy to the RGAT model above.
+        """
         super(GAT, self).__init__()
         self.num_layers = num_layers
-        self.convs = torch.nn.ModuleList()
-        self.convs.append(GATConv(num_features, 8, heads=num_heads, dropout=0.6))
-        for _ in range(num_layers - 2):
-            self.convs.append(GATConv(8 * num_heads, 8, heads=num_heads, dropout=0.6))
-        self.convs.append(GATConv(8 * num_heads, num_classes, heads=num_heads, concat=False, dropout=0.6))
-
+        self.num_heads = num_heads
+        self.convs = ModuleList()
+        self.convs.append(GATConv(num_features, num_features, heads=num_heads))
+        for i in range(num_layers - 1):
+            self.convs.append(GATConv(num_features * num_heads, num_features, heads=num_heads))
+        self.lin = torch.nn.Linear(num_features * num_heads, num_classes)
+    
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
-        for i in range(self.num_layers - 1):
-            x = F.elu(self.convs[i](x, edge_index))
-        x = self.convs[-1](x, edge_index)
+        for i in range(self.num_layers):
+            x = self.convs[i](x, edge_index)
+            x = F.elu(x)
+        x = self.lin(x)
         return F.log_softmax(x, dim=1)
 
-    def attention(self, data):
-        x, edge_index = data.x, data.edge_index
-        attention_scores = []
-        for i in range(self.num_layers - 1):
-            x, att = self.convs[i](x, edge_index, return_attention=True)
-            attention_scores.append(att)
-        x, att = self.convs[-1](x, edge_index, return_attention=True)
-        attention_scores.append(att)
-        return attention_scores
+
+
+
+
 
 
 class Experiment:
@@ -133,3 +154,14 @@ def compute_edge_curvatures(graph):
     for u, v in graph.edges:
         curvatures[(u, v)] = OllivierRicci(graph, u, v).compute_ricci_curvature()
     return curvatures
+
+
+def attention(self, data):
+    x, edge_index = data.x, data.edge_index
+    attention_scores = []
+    for i in range(self.num_layers - 1):
+        x, att = self.convs[i](x, edge_index, return_attention=True)
+        attention_scores.append(att)
+    x, att = self.convs[-1](x, edge_index, return_attention=True)
+    attention_scores.append(att)
+    return attention_scores
