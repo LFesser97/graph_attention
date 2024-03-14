@@ -121,14 +121,16 @@ class Experiment:
         Create a directed graph from the attention scores of the given layer.
         """
         attention_scores = self.model.attention(input_graph)[layer-1]
+        H = to_networkx(input_graph)
         G = nx.DiGraph()
         num_edges = 2 * input_graph.num_edges + input_graph.num_nodes
         G.add_nodes_from(range(num_edges))
         # add edges from source to target with attention score as weight
-
-        # remove self-loops
-        # G.remove_edges_from(nx.selfloop_edges(G))
-        return attention_scores
+        for i, edge in enumerate(H.edges):
+            u, v = edge
+            att = attention_scores[1][i].item()
+            G.add_edge(u, v, weight=att)
+        return G, attention_scores
 
     
 def compute_edge_curvatures(graph):
