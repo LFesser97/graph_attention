@@ -19,7 +19,7 @@ from torch.nn import ModuleList
 
 import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid, WebKB, HeterophilousGraphDataset
-from torch_geometric.nn import GATConv, global_mean_pool
+from torch_geometric.nn import GATConv, global_mean_pool, GATv2Conv
 from torch_geometric.utils import to_networkx, from_networkx, to_dense_adj
 
 from GraphRicciCurvature.OllivierRicci import OllivierRicci
@@ -35,9 +35,9 @@ class GAT(torch.nn.Module):
         """
         super(GAT, self).__init__()
         self.convs = ModuleList()
-        self.convs.append(GATConv(num_features, 8, heads=num_heads, dropout=0.6))
+        self.convs.append(GATv2Conv(num_features, 8, heads=num_heads, dropout=0.6))
         for _ in range(num_layers - 1):
-            self.convs.append(GATConv(8 * num_heads, 8, heads=num_heads, dropout=0.6))
+            self.convs.append(GATv2Conv(8 * num_heads, 8, heads=num_heads, dropout=0.6))
         self.lin = torch.nn.Linear(8 * num_heads, num_classes)
         # self.attention = None
 
@@ -123,7 +123,7 @@ class Experiment:
         attention_scores = self.model.attention(input_graph)[layer-1]
         H = to_networkx(input_graph)
         G = nx.DiGraph()
-        num_edges = 2 * input_graph.num_edges + input_graph.num_nodes
+        num_edges = input_graph.num_edges + input_graph.num_nodes
         G.add_nodes_from(range(num_edges))
         # add edges from source to target with attention score as weight
         for i, edge in enumerate(H.edges):
