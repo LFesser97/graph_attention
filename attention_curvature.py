@@ -39,17 +39,17 @@ class GAT(torch.nn.Module):
         for _ in range(num_layers - 1):
             self.convs.append(GATConv(8 * num_heads, 8, heads=num_heads, dropout=0.6))
         self.lin = torch.nn.Linear(8 * num_heads, num_classes)
-        self.attention = None
+        # self.attention = None
 
     def forward(self, data):
         """
         Forward pass of the GAT model.
         """
         x, edge_index = data.x, data.edge_index
-        self.attention = []
+        # self.attention = []
         for i, conv in enumerate(self.convs):
             x = F.elu(conv(x, edge_index))
-            self.attention.append(conv.att)
+            # self.attention.append(conv.att)
         x = global_mean_pool(x, data.batch)
         x = F.elu(self.lin(x))
         return F.log_softmax(x, dim=1)
