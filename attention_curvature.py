@@ -130,6 +130,10 @@ class Experiment:
             u, v = edge
             att = attention_scores[1][i].item()
             G.add_edge(u, v, weight=att)
+        # add self-loops with attention score as weight
+        for i in range(input_graph.num_nodes):
+            att = attention_scores[1][i+input_graph.num_edges].item()
+            G.add_edge(i, i, weight=att)
         return G, attention_scores
 
     
