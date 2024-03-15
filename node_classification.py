@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 from torch.nn import ModuleList
+from tqdm import tqdm
 
 import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid, WebKB, HeterophilousGraphDataset
@@ -87,7 +88,7 @@ class Experiment:
         optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
         model.train()
         criterion = torch.nn.CrossEntropyLoss()
-        for epoch in range(epochs):
+        for epoch in tqdm(range(epochs)):
             optimizer.zero_grad()
             out = model(data)
             loss = criterion(out[data.train_mask], data.y[data.train_mask])
@@ -96,7 +97,15 @@ class Experiment:
 
         optimizer.zero_grad()
         self.epochs += epochs
+
+        # evaluate the model on the test set
+        model.eval()
+        with torch.no_grad():
+            logits = model(data)
+            pred = logits.argmax(1)
+            test_acc = pred[data.test_mask].eq(data.y[data.test_mask]).sum().item() / data.test_mask.sum().item()
         print(f"Model trained for {self.epochs} total epochs.")
+        print(f"Test accuracy: {test_acc:.4f}")
         self.model = model
 
     def create_attention_digraph(self, input_graph, layer):
