@@ -39,8 +39,8 @@ class GAT(torch.nn.Module):
         """
         x, edge_index = data.x, data.edge_index
         for i, conv in enumerate(self.convs):
-            rel_edge_index = edge_index[:, data.edge_type == i]
-            x = F.elu(conv(x, rel_edge_index))
+            # rel_edge_index = edge_index[:, data.edge_type == i]
+            x = F.elu(conv(x, edge_index))
         return x
     
     def attention(self, data):
@@ -59,7 +59,7 @@ class GAT(torch.nn.Module):
 
 
 class Experiment:
-    def __init__(self, dataset, num_layers, num_heads):
+    def __init__(self, dataset, num_layers, num_heads=1):
         self.dataset = dataset
         self.num_layers = num_layers
         self.num_heads = num_heads
