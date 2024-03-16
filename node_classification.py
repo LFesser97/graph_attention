@@ -84,14 +84,15 @@ class Experiment:
         """
         model = self.model
         device = self.device
-        data = self.dataset[0].to(device)
+        data = self.dataset.data.to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
         model.train()
         criterion = torch.nn.CrossEntropyLoss()
         for epoch in tqdm(range(epochs)):
             optimizer.zero_grad()
             out = model(data)
-            loss = criterion(out[data.train_mask], data.y[data.train_mask])
+            # loss = criterion(out[data.train_mask], data.y[data.train_mask])
+            loss = criterion(out, data.y)
             loss.backward()
             optimizer.step()
 
