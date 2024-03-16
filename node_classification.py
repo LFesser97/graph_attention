@@ -133,3 +133,38 @@ class Experiment:
             att = attention_scores[1][i+input_graph.num_edges].item()
             G.add_edge(i, i, weight=att)
         return G, attention_scores
+
+
+def visualize_attention_digraph(G):
+    """
+    Visualize the attention scores of the given directed graph
+    with edges with low attention scores in blue and edges with
+    high attention scores in red. Set the max attention score
+    to 1 and the min attention score to 0.
+    """
+    edge_colors = [G[u][v]["weight"] for u, v in G.edges]
+    edge_colors = [(1 - w, 0, w) for w in edge_colors]
+    pos = nx.spring_layout(G)
+    nx.draw(G, pos, with_labels=True, node_color="lightgrey", node_size=500, edge_color=edge_colors, width=2.0, edge_cmap=plt.cm.Reds)
+    plt.show()
+
+
+def visualize_attention_differences(G):
+    """
+    Create a new graph where for each pair of undirected edges (u, v) and (v, u),
+    we add a new undirected edge with weight equal to the absolute difference
+    between the attention scores of the original edges. Visualize the new graph
+    with edges with low attention differences in blue and edges with high attention
+    differences in red. Set the max attention difference to 1 and the min attention
+    difference to 0.
+    """
+    H = nx.Graph()
+    for u, v in G.edges:
+        w1 = G[u][v]["weight"]
+        w2 = G[v][u]["weight"]
+        H.add_edge(u, v, weight=abs(w1 - w2))
+    edge_colors = [H[u][v]["weight"] for u, v in H.edges]
+    edge_colors = [(1 - w, 0, w) for w in edge_colors]
+    pos = nx.spring_layout(H)
+    nx.draw(H, pos, with_labels=True, node_color="lightgrey", node_size=500, edge_color=edge_colors, width=2.0, edge_cmap=plt.cm.Reds)
+    plt.show()
