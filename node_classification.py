@@ -28,10 +28,10 @@ class GAT(torch.nn.Module):
     def __init__(self, num_features, num_classes, num_layers, num_heads):
         super(GAT, self).__init__()
         self.convs = ModuleList()
-        self.convs.append(GATv2Conv(num_features, 8, heads=num_heads, dropout=0.6))
+        self.convs.append(GATv2Conv(num_features, 10, heads=num_heads, dropout=0.6))
         for _ in range(num_layers - 1):
-            self.convs.append(GATv2Conv(8 * num_heads, 8, heads=num_heads, dropout=0.6))
-        self.lin = torch.nn.Linear(8 * num_heads, num_classes)
+            self.convs.append(GATv2Conv(10 * num_heads, 10, heads=num_heads, dropout=0.6))
+        self.lin = torch.nn.Linear(10 * num_heads, num_classes)
         # self.attention = None
 
     def forward(self, data):
