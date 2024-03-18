@@ -14,7 +14,7 @@ from tqdm import tqdm
 import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid, WebKB, HeterophilousGraphDataset
 from torch_geometric.nn import GATConv, global_mean_pool, GATv2Conv
-from torch_geometric.utils import to_networkx, from_networkx, to_dense_adj
+from torch_geometric.utils import to_networkx, from_networkx, to_dense_adj, to_undirected
 
 from GraphRicciCurvature.OllivierRicci import OllivierRicci
 
@@ -57,10 +57,26 @@ class GAT(torch.nn.Module):
             attention.append(att)
             x = F.elu(x)
         return attention
+    
+    def node_similarity(self, data):
+        """
+        Compute the node similarity of the GAT model
+        after each layer using the compute_node_similarity
+        function.
+        """
+        x, edge_index = data.x, data.edge_index
+        similarity = []
+        similarity.append(compute_node_similarity(x))
+        for i, conv in enumerate(self.convs):
+            # use the compute_node_similarity function to compute the node similarity
+            x = F.elu(conv(x, edge_index))
+            similarity.append(compute_node_similarity(x))
+        return similarity
 
 
 class Experiment:
     def __init__(self, dataset, num_layers, num_heads=1):
+        dataset.data.edge_index = to_undirected(dataset.data.edge_index)
         self.dataset = dataset
         self.num_layers = num_layers
         self.num_heads = num_heads
@@ -129,10 +145,17 @@ class Experiment:
             att = attention_scores[1][i].item()
             G.add_edge(u, v, weight=att)
         # add self-loops with attention score as weight
-        # for i in range(input_graph.num_nodes):
-        #    att = attention_scores[1][i+input_graph.num_edges-1].item()
-        #    G.add_edge(i, i, weight=att)
+        for i in range(input_graph.num_nodes):
+           att = attention_scores[1][i+input_graph.num_edges-1].item()
+           G.add_edge(i, i, weight=att)
         return G, attention_scores
+    
+    def get_node_similarity(self, input_graph) -> list:
+        """
+        Compute the node similarity of the given graph
+        after each layer of the model.
+        """
+        return self.model.node_similarity(input_graph)
 
 
 def visualize_attention_digraph(G):
@@ -144,8 +167,12 @@ def visualize_attention_digraph(G):
     """
     edge_colors = [G[u][v]["weight"] for u, v in G.edges]
     edge_colors = [(1 - w, 0, w) for w in edge_colors]
-    pos = nx.spring_layout(G)
-    nx.draw(G, pos, with_labels=True, node_color="lightgrey", node_size=500, edge_color=edge_colors, width=2.0, edge_cmap=plt.cm.Reds)
+    # add a legend for the edge colors to the plot
+    fig, ax = plt.subplots()
+    sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=plt.Normalize(vmin=0, vmax=1))
+    sm.set_array([])
+    fig.colorbar(sm, label="Attention Score")
+    nx.draw(G, with_labels=False, node_color="lightgrey", node_size=50, edge_color=edge_colors, width=2.0, edge_cmap=plt.cm.Reds)
     plt.show()
 
 
@@ -165,6 +192,17 @@ def visualize_attention_differences(G):
         H.add_edge(u, v, weight=abs(w1 - w2))
     edge_colors = [H[u][v]["weight"] for u, v in H.edges]
     edge_colors = [(1 - w, 0, w) for w in edge_colors]
-    pos = nx.spring_layout(H)
-    nx.draw(H, pos, with_labels=True, node_color="lightgrey", node_size=500, edge_color=edge_colors, width=2.0, edge_cmap=plt.cm.Reds)
+    nx.draw(H, with_labels=True, node_color="lightgrey", node_size=500, edge_color=edge_colors, width=2.0, edge_cmap=plt.cm.Reds)
     plt.show()
+
+
+def compute_node_similarity(X):
+    """
+    Given a matrix of the node features,
+    compute \|X - 1 gamma_X \|_F where gamma_X
+    is 1^T X / n and 1 is the vector of ones.
+    """
+    n = X.shape[0]
+    gamma_X = torch.ones(n) @ X / n
+    gamma_X = gamma_X.unsqueeze(0).t()
+    return torch.norm(X - torch.ones(n) @ gamma_X, p="fro")
