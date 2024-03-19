@@ -197,9 +197,10 @@ def visualize_attention_differences(G):
     """
     H = nx.Graph()
     for u, v in G.edges:
-        w1 = G[u][v]["weight"]
-        w2 = G[v][u]["weight"]
-        H.add_edge(u, v, weight=abs(w1 - w2))
+        if u != v:
+            w1 = G[u][v]["weight"]
+            w2 = G[v][u]["weight"]
+            H.add_edge(u, v, weight=abs(w1 - w2))
     edge_colors = [H[u][v]["weight"] for u, v in H.edges]
     edge_colors = [(1 - w, 0, w) for w in edge_colors]
     nx.draw(H, with_labels=True, node_color="lightgrey", node_size=500, edge_color=edge_colors, width=2.0, edge_cmap=plt.cm.Reds)
