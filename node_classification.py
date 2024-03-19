@@ -76,6 +76,17 @@ class GAT(torch.nn.Module):
 
 class Experiment:
     def __init__(self, dataset, num_layers, num_heads=1):
+        # remove self-loops and convert to undirected graph
+        x = dataset.data.x
+        y = dataset.data.y
+        dataset.data.edge_index = to_undirected(dataset.data.edge_index)
+        G = to_networkx(dataset.data)
+        self_loops = list(nx.selfloop_edges(G))
+        G.remove_edges_from(self_loops)
+        dataset.data = from_networkx(G)
+        dataset.data.x = x
+        dataset.data.y = y
+
         self.dataset = dataset
         self.num_layers = num_layers
         self.num_heads = num_heads
