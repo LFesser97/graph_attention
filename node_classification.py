@@ -203,7 +203,7 @@ def visualize_attention_differences(G):
             H.add_edge(u, v, weight=abs(w1 - w2))
     edge_colors = [H[u][v]["weight"] for u, v in H.edges]
     edge_colors = [(1 - w, 0, w) for w in edge_colors]
-    nx.draw(H, with_labels=True, node_color="lightgrey", node_size=500, edge_color=edge_colors, width=2.0, edge_cmap=plt.cm.Reds)
+    nx.draw(H, with_labels=True, node_color="lightgrey", node_size=50, edge_color=edge_colors, width=2.0, edge_cmap=plt.cm.Reds)
     plt.show()
 
 
@@ -214,6 +214,9 @@ def compute_node_similarity(X):
     is 1^T X / n and 1 is the vector of ones.
     """
     n = X.shape[0]
+    print("Shape of X:", X.shape)
     gamma_X = torch.ones(n) @ X / n
+    print("Shape of gamma_X:", gamma_X.shape)
     gamma_X = gamma_X.unsqueeze(0).t()
+    print("Shape of gamma_X unsqueezed:", gamma_X.shape)
     return torch.norm(X - torch.ones(n) @ gamma_X, p="fro")
