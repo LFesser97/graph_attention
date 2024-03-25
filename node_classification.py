@@ -218,7 +218,7 @@ def compute_node_similarity(X):
     gamma_X = torch.ones(n) @ X / n
     print("Shape of gamma_X:", gamma_X.shape)
     gamma_X = gamma_X.unsqueeze(0).t()
-    outer_product = torch.ones(n) @ gamma_X.t()
+    outer_product = torch.ger(torch.ones(n), gamma_X)
     print("Shape of outer product:", outer_product.shape)
     return torch.norm(X - outer_product, p="fro")
     # return torch.norm(X - torch.ones(n) @ gamma_X, p="fro")
