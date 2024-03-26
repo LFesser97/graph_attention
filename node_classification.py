@@ -58,7 +58,7 @@ class GAT(torch.nn.Module):
             x = F.elu(x)
         return attention
     
-    def node_similarity(self, data):
+    def node_similarity(self, data, device):
         """
         Compute the node similarity of the GAT model
         after each layer using the compute_node_similarity
@@ -66,11 +66,11 @@ class GAT(torch.nn.Module):
         """
         x, edge_index = data.x, data.edge_index
         similarity = []
-        similarity.append(compute_node_similarity(x))
+        similarity.append(compute_node_similarity(x, device))
         for i, conv in enumerate(self.convs):
             # use the compute_node_similarity function to compute the node similarity
             x = F.elu(conv(x, edge_index))
-            similarity.append(compute_node_similarity(x))
+            similarity.append(compute_node_similarity(x, device))
         return similarity
     
 
@@ -176,7 +176,7 @@ class Experiment:
         Compute the node similarity of the given graph
         after each layer of the model.
         """
-        return self.model.node_similarity(input_graph)
+        return self.model.node_similarity(input_graph, self.device)
 
 
 def visualize_attention_digraph(G):
@@ -218,7 +218,7 @@ def visualize_attention_differences(G):
     plt.show()
 
 
-def compute_node_similarity(X):
+def compute_node_similarity(X, device):
     """
     Given a matrix of the node features,
     compute \|X - 1 gamma_X \|_F where gamma_X
@@ -226,10 +226,10 @@ def compute_node_similarity(X):
     """
     n = X.shape[0]
     print("Shape of X:", X.shape)
-    gamma_X = torch.ones(n) @ X / n
+    gamma_X = torch.ones(n).to(device) @ X / n
     print("Shape of gamma_X:", gamma_X.shape)
     # gamma_X = gamma_X.unsqueeze(0).t()
-    outer_product = torch.ger(torch.ones(n), gamma_X)
+    outer_product = torch.ger(torch.ones(n).to(device), gamma_X)
     print("Shape of outer product:", outer_product.shape)
     return torch.norm(X - outer_product, p="fro")
     # return torch.norm(X - torch.ones(n) @ gamma_X, p="fro")
