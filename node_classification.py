@@ -145,7 +145,7 @@ class Experiment:
         if self.model_type == "GAT":
             model = GAT(num_features, num_classes, self.num_layers, self.num_heads).to(self.device)
         elif self.model_type == "GCN":
-            pass # implement GCN model
+            model = GCN(num_features, num_classes, self.num_layers).to(self.device)
         return model
     
     def train(self, epochs=100):
