@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid, WebKB, HeterophilousGraphDataset
-from torch_geometric.nn import GATConv, global_mean_pool, GATv2Conv
+from torch_geometric.nn import GATConv, global_mean_pool, GATv2Conv, GCNConv
 from torch_geometric.utils import to_networkx, from_networkx, to_dense_adj, to_undirected
 
 from GraphRicciCurvature.OllivierRicci import OllivierRicci
@@ -76,10 +76,42 @@ class GAT(torch.nn.Module):
 
 class GCN(torch.nn.Module):
     """
-    Create a GCN model for node classification.
+    Create a GCN model for node classification
+    with hidden layers of size 32.
     """
     def __init__(self, num_features, num_classes, num_layers):
-        pass
+        super(GCN, self).__init__()
+        self.convs = ModuleList()
+        self.convs.append(GCNConv(num_features, 32))
+        for _ in range(num_layers - 1):
+            self.convs.append(GCNConv(32, 32))
+        self.lin = torch.nn.Linear(32, num_classes)
+
+    def forward(self, data):
+        """
+        Forward pass of the GCN model.
+        """
+        x, edge_index = data.x, data.edge_index
+        for conv in self.convs:
+            x = F.relu(conv(x, edge_index))
+        x = global_mean_pool(x, data.batch)
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.lin(x)
+        return F.log_softmax(x, dim=1)
+    
+    def node_similarity(self, data, device):
+        """
+        Compute the node similarity of the GCN model
+        after each layer using the compute_node_similarity
+        function.
+        """
+        x, edge_index = data.x, data.edge_index
+        similarity = []
+        similarity.append(compute_node_similarity(x, device))
+        for conv in self.convs:
+            x = F.relu(conv(x, edge_index))
+            similarity.append(compute_node_similarity(x, device))
+        return similarity
 
 
 class Experiment:
@@ -225,11 +257,6 @@ def compute_node_similarity(X, device):
     is 1^T X / n and 1 is the vector of ones.
     """
     n = X.shape[0]
-    print("Shape of X:", X.shape)
     gamma_X = torch.ones(n).to(device) @ X / n
-    print("Shape of gamma_X:", gamma_X.shape)
-    # gamma_X = gamma_X.unsqueeze(0).t()
     outer_product = torch.ger(torch.ones(n).to(device), gamma_X)
-    print("Shape of outer product:", outer_product.shape)
     return torch.norm(X - outer_product, p="fro")
-    # return torch.norm(X - torch.ones(n) @ gamma_X, p="fro")
