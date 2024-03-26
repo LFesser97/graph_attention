@@ -115,7 +115,7 @@ class GCN(torch.nn.Module):
 
 
 class Experiment:
-    def __init__(self, dataset, num_layers, num_heads=1):
+    def __init__(self, dataset, num_layers, num_heads=1, model_type="GAT"):
         # remove self-loops and convert to undirected graph
         x = dataset.data.x
         y = dataset.data.y
@@ -130,20 +130,21 @@ class Experiment:
         self.dataset = dataset
         self.num_layers = num_layers
         self.num_heads = num_heads
+        self.model_type = model_type
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = self.create_model()
         self.epochs = 0
 
-    def create_model(self, model_type="GAT"):
+    def create_model(self):
         """
         Create a GAT model with the given number of layers and heads
         for the given number of features and classes.
         """
         num_features = self.dataset.num_features
         num_classes = self.dataset.num_classes
-        if model_type == "GAT":
+        if self.model_type == "GAT":
             model = GAT(num_features, num_classes, self.num_layers, self.num_heads).to(self.device)
-        elif model_type == "GCN":
+        elif self.model_type == "GCN":
             pass # implement GCN model
         return model
     
