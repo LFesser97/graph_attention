@@ -94,10 +94,7 @@ class GCN(torch.nn.Module):
         x, edge_index = data.x, data.edge_index
         for conv in self.convs:
             x = F.relu(conv(x, edge_index))
-        x = global_mean_pool(x, data.batch)
-        x = F.dropout(x, p=0.5, training=self.training)
-        x = self.lin(x)
-        return F.log_softmax(x, dim=1)
+        return x
     
     def node_similarity(self, data, device):
         """
