@@ -188,7 +188,6 @@ class Experiment:
         attention_scores = self.model.attention(input_graph)[layer-1]
         H = to_networkx(input_graph)
         G = nx.DiGraph()
-        num_edges = input_graph.num_edges + input_graph.num_nodes
         G.add_nodes_from(range(input_graph.num_nodes))
         # add edges from source to target with attention score as weight
         for i, edge in enumerate(H.edges):
@@ -197,7 +196,7 @@ class Experiment:
             G.add_edge(u, v, weight=att)
         # add self-loops with attention score as weight
         for i in range(input_graph.num_nodes):
-           att = attention_scores[1][i+input_graph.num_edges-1].item()
+           att = attention_scores[1][i+input_graph.num_edges].item()
            G.add_edge(i, i, weight=att)
         return G, attention_scores
     
@@ -258,3 +257,26 @@ def compute_node_similarity(X, device):
     gamma_X = torch.ones(n).to(device) @ X / n
     outer_product = torch.ger(torch.ones(n).to(device), gamma_X)
     return torch.norm(X - outer_product, p="fro")
+
+
+def compute_projection_matrix(X, device):
+    """
+    Compute the projection matrix P_X = X (X^T X)^{-1} X^T
+    for the given matrix X.
+    """
+    return X @ torch.inverse(X.t() @ X) @ X.t()
+
+
+def compute_gcn_deviation(attention_graph):
+    """
+    For each directed edge in the attention graph,
+    compute the absolute difference from 1/deg(u),
+    where deg(u) is the degree of the target node.
+    """
+    H = nx.Graph()
+    for u, v in attention_graph.edges:
+        if u != v:
+            w = attention_graph[u][v]["weight"]
+            deg = attention_graph.degree(u)
+            H.add_edge(u, v, weight=abs(w - 1/deg))
+    return H
