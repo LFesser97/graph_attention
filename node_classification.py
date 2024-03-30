@@ -5,6 +5,7 @@ node_classification.py
 import os.path as osp
 import time
 import matplotlib.pyplot as plt
+import numpy as np
 
 import torch
 import torch.nn.functional as F
@@ -273,10 +274,38 @@ def compute_gcn_deviation(attention_graph):
     compute the absolute difference from 1/deg(u),
     where deg(u) is the degree of the target node.
     """
-    H = nx.Graph()
+    H = nx.DiGraph()
     for u, v in attention_graph.edges:
-        if u != v:
-            w = attention_graph[u][v]["weight"]
-            deg = attention_graph.degree(u)
-            H.add_edge(u, v, weight=abs(w - 1/deg))
+        # if u != v:
+        w = attention_graph[u][v]["weight"]
+        deg = attention_graph.in_degree(u)
+        assert(deg > 1)
+        H.add_edge(u, v, weight=abs(w - 1/deg))
+        # H.add_edge(u, v, weight=1/deg)
     return H
+
+
+def compute_percentiles(values):
+    min_val = np.min(values)
+    percentile_25 = np.percentile(values, 25)
+    median = np.percentile(values, 50)
+    percentile_75 = np.percentile(values, 75)
+    max_val = np.max(values)
+    
+    return min_val, percentile_25, median, percentile_75, max_val
+
+
+def plot_box_plots(data_dict, ylabel="Deviation from GCN Attention"):
+    # Get keys and values from the dictionary
+    keys = list(data_dict.keys())
+    values = list(data_dict.values())
+    
+    # Create box plots
+    plt.figure(figsize=(10, 6))
+    plt.boxplot(values, labels=keys)
+    plt.xlabel('Degree of the Target Node')
+    plt.ylabel(ylabel)
+    plt.ylim(0, 1)
+    # plt.title('Box plots of values for each key')
+    plt.grid(True)
+    plt.show()
