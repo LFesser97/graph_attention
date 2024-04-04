@@ -592,10 +592,64 @@ class ORC:
         plt.figure(figsize=(8, 6))
         plt.scatter(x_values, y_values)
         plt.xlabel('Ollivier-Ricci Curvature of Edge')
+        plt.xlim(-2, 1)
         plt.ylabel('Attention Deviation Difference')
         # plt.title('Scatter Plot')
         plt.grid(True)
         plt.show()
+
+
+class NodeLevelAccuracy:
+    """
+    An abstract class with static methods for
+    computing the node-level accuracy of GCN or GAT.
+    """
+    @staticmethod
+    def compute_node_level_accuracy(model_type, data, num_layers = 4, num_runs=10):
+        """
+        Train a GCN or GAT model for the given number of runs
+        and compute for each node the number of times it was
+        correctly classified.
+        """
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # create a dictionary with nodes as keys and the number of times
+        # they were correctly classified as values
+        node_accuracy = {i: [] for i in range(data.num_nodes)}
+        epochs = 100
+
+        for _ in range(num_runs):
+            if model_type == "GCN":
+                model = GCN(data.num_features, data.num_classes, num_layers).to(device)
+            elif model_type == "GAT":
+                model = GAT(data.num_features, data.num_classes, num_layers, num_heads=1).to(device)
+            optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
+            model.train()
+            criterion = torch.nn.CrossEntropyLoss()
+            
+            # create a list of training nodes by randomly choosing 50% of the nodes
+            train_mask = torch.randperm(data.num_nodes) < 0.5 * data.num_nodes
+            for epoch in tqdm(range(epochs)):
+                optimizer.zero_grad()
+                out = model(data)
+                loss = criterion(out[train_mask], data.y[train_mask])
+                loss.backward()
+                optimizer.step()
+
+            optimizer.zero_grad()
+
+            # create a list of test nodes by randomly choosing 25% of the nodes
+            test_mask = torch.randperm(data.num_nodes) < 0.25 * data.num_nodes
+            # evaluate the model on each node in the test set
+            model.eval()
+            with torch.no_grad():
+                logits = model(data)
+                pred = logits.argmax(1)
+                for i in range(data.num_nodes):
+                    if pred[i] == data.y[i]:
+                        node_accuracy[i].append(1)
+                    else:
+                        node_accuracy[i].append(0)
+        return {i: sum(node_accuracy[i]) / len(node_accuracy[i]) for i in range(data.num_nodes)}
 
 
 def compute_node_similarity(X, device):
