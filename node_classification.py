@@ -612,9 +612,10 @@ class NodeLevelAccuracy:
         correctly classified.
         """
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        graph = data[0].to(device)
         # create a dictionary with nodes as keys and the number of times
         # they were correctly classified as values
-        node_accuracy = {i: [] for i in range(data.num_nodes)}
+        node_accuracy = {i: [] for i in range(graph.num_nodes)}
         epochs = 100
 
         for _ in range(num_runs):
@@ -627,10 +628,10 @@ class NodeLevelAccuracy:
             criterion = torch.nn.CrossEntropyLoss()
             
             # create a list of training nodes by randomly choosing 50% of the nodes
-            train_mask = torch.randperm(data.num_nodes) < 0.5 * data.num_nodes
+            train_mask = torch.randperm(graph) < 0.5 * graph
             for epoch in tqdm(range(epochs)):
                 optimizer.zero_grad()
-                out = model(data)
+                out = model(graph)
                 loss = criterion(out[train_mask], data.y[train_mask])
                 loss.backward()
                 optimizer.step()
@@ -638,14 +639,14 @@ class NodeLevelAccuracy:
             optimizer.zero_grad()
 
             # create a list of test nodes by randomly choosing 25% of the nodes
-            test_mask = torch.randperm(data.num_nodes) < 0.25 * data.num_nodes
+            test_mask = torch.randperm(graph) < 0.25 * graph
             # evaluate the model on each node in the test set
             model.eval()
             with torch.no_grad():
-                logits = model(data)
+                logits = model(graph)
                 pred = logits.argmax(1)
-                for i in range(data.num_nodes):
-                    if pred[i] == data.y[i]:
+                for i in range(graph.num_nodes):
+                    if pred[i] == graph.y[i]:
                         node_accuracy[i].append(1)
                     else:
                         node_accuracy[i].append(0)
