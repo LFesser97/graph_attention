@@ -650,7 +650,7 @@ class NodeLevelAccuracy:
                         node_accuracy[i].append(1)
                     else:
                         node_accuracy[i].append(0)
-        return {i: sum(node_accuracy[i]) / len(node_accuracy[i]) for i in range(data.num_nodes)}
+        return {i: sum(node_accuracy[i]) / len(node_accuracy[i]) for i in range(graph.num_nodes)}
 
 
 def compute_node_similarity(X, device):
