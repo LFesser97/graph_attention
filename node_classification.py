@@ -632,14 +632,14 @@ class NodeLevelAccuracy:
             for epoch in tqdm(range(epochs)):
                 optimizer.zero_grad()
                 out = model(graph)
-                loss = criterion(out[train_mask], data.y[train_mask])
+                loss = criterion(out[train_mask].to(device), graph.y[train_mask].to(device))
                 loss.backward()
                 optimizer.step()
 
             optimizer.zero_grad()
 
             # create a list of test nodes by randomly choosing 25% of the nodes
-            test_mask = torch.randperm(graph) < 0.25 * graph
+            test_mask = torch.randperm(graph.num_nodes) < 0.25 * graph.num_nodes
             # evaluate the model on each node in the test set
             model.eval()
             with torch.no_grad():
