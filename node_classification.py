@@ -628,7 +628,7 @@ class NodeLevelAccuracy:
             criterion = torch.nn.CrossEntropyLoss()
             
             # create a list of training nodes by randomly choosing 50% of the nodes
-            train_mask = torch.randperm(graph) < 0.5 * graph
+            train_mask = torch.randperm(graph.num_nodes) < 0.5 * graph.num_nodes
             for epoch in tqdm(range(epochs)):
                 optimizer.zero_grad()
                 out = model(graph)
