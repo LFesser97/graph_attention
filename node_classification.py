@@ -114,6 +114,57 @@ class GCN(torch.nn.Module):
         return similarity
 
 
+class GATGCN(torch.nn.Module):
+    """
+    Create a GAT-GCN model for node classification
+    with hidden layers of size 32.
+    """
+    def __init__(self, num_features, num_classes, num_layers, num_heads = 1, gat_layers = [1]):
+        """
+        Create a GCN model with the given number of layers
+        that uses GAT for the layers in gat_layers.
+        """
+        super(GATGCN, self).__init__()
+        self.gat_layers = gat_layers
+        self.convs = ModuleList()
+        if 0 in gat_layers:
+            self.convs.append(GATv2Conv(num_features, 32, heads=num_heads))
+        else:
+            self.convs.append(GCNConv(num_features, 32))
+        for i in range(1, num_layers):
+            if i in gat_layers:
+                self.convs.append(GATv2Conv(32, 32, heads=num_heads))
+            else:
+                self.convs.append(GCNConv(32, 32))
+        self.lin = torch.nn.Linear(32, num_classes)
+
+    def forward(self, data):
+        """
+        Forward pass of the GAT-GCN model.
+        """
+        x, edge_index = data.x, data.edge_index
+        for i, conv in enumerate(self.convs):
+            x = F.relu(conv(x, edge_index))
+        return x
+    
+    def attention(self, data):
+        """
+        Return the attention scores of the GAT layers in
+        the GAT-GCN model using return_attention_scores=True.
+        """
+        x, edge_index = data.x, data.edge_index
+        attention = []
+        for i, conv in enumerate(self.convs):
+            if i in self.gat_layers:
+                x, att = conv(x, edge_index, return_attention_weights=True)
+                attention.append(att)
+                x = F.relu(x)
+            else:
+                attention.append(None) # TODO: Implement 'Attention' for GCN layers
+                x = F.relu(conv(x, edge_index))
+        return attention
+
+
 class Experiment:
     def __init__(self, dataset, num_layers, num_heads=1, model_type="GAT"):
         # remove self-loops and convert to undirected graph
