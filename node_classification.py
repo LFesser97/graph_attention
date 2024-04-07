@@ -315,7 +315,7 @@ class AttentionDeviation:
     """
 
     @staticmethod
-    def compute_gcn_deviation(attention_graph):
+    def compute_gcn_deviation(attention_graph, abs=True):
         """
         For each directed edge in the attention graph,
         compute the absolute difference from 1/deg(u),
@@ -323,12 +323,13 @@ class AttentionDeviation:
         """
         H = nx.DiGraph()
         for u, v in attention_graph.edges:
-            # if u != v:
             w = attention_graph[u][v]["weight"]
             deg = attention_graph.in_degree(u)
             assert(deg > 1)
-            H.add_edge(u, v, weight=abs(w - 1/deg))
-            # H.add_edge(u, v, weight=1/deg)
+            if abs:
+                H.add_edge(u, v, weight=abs(w - 1/deg))
+            else:
+                H.add_edge(u, v, weight=w - 1/deg)
         return H
 
     @staticmethod
