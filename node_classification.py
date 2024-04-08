@@ -166,7 +166,7 @@ class GATGCN(torch.nn.Module):
 
 
 class Experiment:
-    def __init__(self, dataset, num_layers, num_heads=1, model_type="GAT"):
+    def __init__(self, dataset, num_layers, num_heads=1, model_type="GAT", gat_layers=[]):
         # remove self-loops and convert to undirected graph
         x = dataset.data.x
         y = dataset.data.y
@@ -182,6 +182,7 @@ class Experiment:
         self.num_layers = num_layers
         self.num_heads = num_heads
         self.model_type = model_type
+        self.gat_layers = gat_layers
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = self.create_model()
         self.epochs = 0
@@ -197,6 +198,8 @@ class Experiment:
             model = GAT(num_features, num_classes, self.num_layers, self.num_heads).to(self.device)
         elif self.model_type == "GCN":
             model = GCN(num_features, num_classes, self.num_layers).to(self.device)
+        elif self.model_type == "GATGCN":
+            model = GATGCN(num_features, num_classes, self.num_layers, self.num_heads, self.gat_layers).to(self.device)
         return model
     
     def train(self, epochs=100):
