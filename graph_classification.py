@@ -263,8 +263,9 @@ class VisualizationMethods:
         nx.draw_networkx_nodes(G, pos, node_color='lightblue', node_size=50)
         nx.draw_networkx_edges(G, pos, width=2, edge_color=edge_colors)
 
-        # Draw labels
-        nx.draw_networkx_labels(G, pos, font_size=12, font_family='sans-serif')
+        # Draw weights on the edges
+        labels = nx.get_edge_attributes(G, 'weight')
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
 
         # Show the plot
         plt.axis('off')
