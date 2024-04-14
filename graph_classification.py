@@ -250,20 +250,27 @@ class VisualizationMethods:
         """
         if deviation:
             # replace the edge weights with the difference from 1/deg(u)
-            H = AttentionDeviation.compute_gcn_deviation(G)
-            edge_colors = [H[u][v]["weight"] for u, v in H.edges]
-            edge_colors = [(1 - w, 0, w) for w in edge_colors]
-        else:
-            edge_colors = [G[u][v]["weight"] for u, v in G.edges]
-            edge_colors = [(1 - w, 0, w) for w in edge_colors]
-        # add a legend for the edge colors to the plot
-        fig, ax = plt.subplots()
-        sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=plt.Normalize(vmin=-1, vmax=1))
-        sm.set_array([])
-        fig.colorbar(sm, label="Attention Score")
-        nx.draw(G, with_labels=False, node_color="lightgrey", node_size=50, edge_color=edge_colors, width=2.0, edge_cmap=plt.cm.Reds)
-        plt.show()
+            G = AttentionDeviation.compute_gcn_deviation(G)
+        pos = nx.spring_layout(G)  # Define the layout
+        weights = [G[u][v]['weight'] for u, v in G.edges()]  # Extract edge weights
 
+        # Create a color map based on edge weights
+        cmap = plt.cm.coolwarm  # You can choose any colormap you like
+        normalize = plt.Normalize(vmin=min(weights), vmax=max(weights))
+        edge_colors = [cmap(normalize(weight)) for weight in weights]
+
+        # Draw nodes and edges
+        nx.draw_networkx_nodes(G, pos, node_color='lightblue', node_size=50)
+        nx.draw_networkx_edges(G, pos, width=2, edge_color=edge_colors)
+
+        # Draw labels
+        nx.draw_networkx_labels(G, pos, font_size=12, font_family='sans-serif')
+
+        # Show the plot
+        plt.axis('off')
+        plt.show()
+        
+                
     @staticmethod
     def visualize_attention_differences(G):
         """
