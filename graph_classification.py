@@ -249,28 +249,40 @@ class VisualizationMethods:
         to 1 and the min attention score to 0.
         """
         if deviation:
-            # replace the edge weights with the difference from 1/deg(u)
-            G = AttentionDeviation.compute_gcn_deviation(G)
-        pos = nx.spring_layout(G)  # Define the layout
-        weights = [G[u][v]['weight'] for u, v in G.edges()]  # Extract edge weights
+            print("Visualizing attention deviation...")
+            H = AttentionDeviation.compute_gcn_deviation(G)
+            pos = nx.spring_layout(H)  # Define the layout
+            weights = [H[u][v]['weight'] for u, v in H.edges()]  # Extract edge weights
 
-        # Create a color map based on edge weights
-        cmap = plt.cm.coolwarm  # You can choose any colormap you like
-        normalize = plt.Normalize(vmin=min(weights), vmax=max(weights))
-        edge_colors = [cmap(normalize(weight)) for weight in weights]
+            cmap = plt.cm.coolwarm  # You can choose any colormap you like
+            normalize = plt.Normalize(vmin=-1, vmax=1)
+            edge_colors = [cmap(normalize(weight)) for weight in weights]
 
-        # Draw nodes and edges
-        nx.draw_networkx_nodes(G, pos, node_color='lightblue', node_size=50)
-        nx.draw_networkx_edges(G, pos, width=2, edge_color=edge_colors)
+            nx.draw_networkx_nodes(H, pos, node_color='grey', node_size=50)
+            nx.draw_networkx_edges(H, pos, width=2, edge_color=edge_colors)
 
-        # Round the weights to 2 decimal points and display them on the edges
-        edge_labels = {(u, v): round(G[u][v]['weight'], 2) for u, v in G.edges()}
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+            edge_labels = {(u, v): round(H[u][v]['weight'], 2) for u, v in H.edges()}
+            nx.draw_networkx_edge_labels(H, pos, edge_labels=edge_labels)
 
-        # Show the plot
-        plt.axis('off')
-        plt.show()
-        
+            plt.axis('off')
+            plt.show()
+
+        else:
+            print("Visualizing raw attention scores...")
+            pos = nx.spring_layout(G)
+            weights = [G[u][v]['weight'] for u, v in G.edges()]
+            cmap = plt.cm.coolwarm
+            normalize = plt.Normalize(vmin=0, vmax=1)
+            edge_colors = [cmap(normalize(weight)) for weight in weights]
+
+            nx.draw_networkx_nodes(G, pos, node_color='grey', node_size=50)
+            nx.draw_networkx_edges(G, pos, width=2, edge_color=edge_colors)
+
+            edge_labels = {(u, v): round(G[u][v]['weight'], 2) for u, v in G.edges()}
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+
+            plt.axis('off')
+            plt.show()
                 
     @staticmethod
     def visualize_attention_differences(G):
