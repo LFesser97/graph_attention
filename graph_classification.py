@@ -6,6 +6,7 @@ import os.path as osp
 import time
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 
 import torch
 import torch.nn.functional as F
@@ -178,9 +179,9 @@ class Experiment:
         model = self.model
         device = self.device
         dataset = self.dataset
-        # random split of 80% training and 20% testing
-        dataset = dataset.shuffle()
-        train_dataset = dataset[:int(0.8 * len(dataset))]
+        # randomly choose 80% of the dataset for training
+        elements_to_choose = int(0.8 * len(dataset))
+        train_dataset = random.sample(dataset, elements_to_choose)
         model.train()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
         criterion = torch.nn.CrossEntropyLoss()
@@ -198,7 +199,7 @@ class Experiment:
 
         # test the model
         model.eval()
-        test_dataset = dataset[int(0.8 * len(dataset)):]
+        test_dataset = [data for data in dataset if data not in train_dataset]
         correct = 0
         for data in test_dataset:
             data = data.to(device)
