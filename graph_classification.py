@@ -7,6 +7,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+from tqdm import tqdm
 
 import torch
 import torch.nn.functional as F
@@ -185,7 +186,7 @@ class Experiment:
         model.train()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
         criterion = torch.nn.CrossEntropyLoss()
-        for epoch in range(epochs):
+        for epoch in tqdm(range(epochs)):
             for data in train_dataset:
                 data = data.to(device)
                 optimizer.zero_grad()
