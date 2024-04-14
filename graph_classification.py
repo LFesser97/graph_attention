@@ -241,18 +241,24 @@ class VisualizationMethods:
     """
 
     @staticmethod
-    def visualize_attention_digraph(G):
+    def visualize_attention_digraph(G, deviation=False):
         """
         Visualize the attention scores of the given directed graph
         with edges with low attention scores in blue and edges with
         high attention scores in red. Set the max attention score
         to 1 and the min attention score to 0.
         """
-        edge_colors = [G[u][v]["weight"] for u, v in G.edges]
-        edge_colors = [(1 - w, 0, w) for w in edge_colors]
+        if deviation:
+            # replace the edge weights with the difference from 1/deg(u)
+            H = AttentionDeviation.compute_gcn_deviation(G)
+            edge_colors = [H[u][v]["weight"] for u, v in H.edges]
+            edge_colors = [(1 - w, 0, w) for w in edge_colors]
+        else:
+            edge_colors = [G[u][v]["weight"] for u, v in G.edges]
+            edge_colors = [(1 - w, 0, w) for w in edge_colors]
         # add a legend for the edge colors to the plot
         fig, ax = plt.subplots()
-        sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=plt.Normalize(vmin=0, vmax=1))
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=plt.Normalize(vmin=-1, vmax=1))
         sm.set_array([])
         fig.colorbar(sm, label="Attention Score")
         nx.draw(G, with_labels=False, node_color="lightgrey", node_size=50, edge_color=edge_colors, width=2.0, edge_cmap=plt.cm.Reds)
